@@ -27,7 +27,11 @@ import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
 import rx.Observable;
+import rx.Subscriber;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Func0;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by iedeveloper on 20/12/16.
@@ -37,7 +41,7 @@ public class LoginActivity extends AppCompatActivity {
 
     public static String TAG="ActivityLogin";
     private static String URL = "http://lab.ie-soluciones.com/tapanosa/apiv2/movil/";
-
+    private Subscription subscription;
     private ImageView imageViewLogo;
     private AppCompatButton buttonIniciarSesion;
     private TextInputLayout textInputEditTextUsuario;
@@ -45,6 +49,8 @@ public class LoginActivity extends AppCompatActivity {
     private AppCompatEditText editTextUsuario;
     private AppCompatEditText editTextContrasena;
     private ServicioWeb servicioWeb;
+    private LoginResponse loginActual;
+
 
 
     @Override
@@ -60,8 +66,7 @@ public class LoginActivity extends AppCompatActivity {
         buttonIniciarSesion.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
-
+                setRxJava();
             }
         });
 
@@ -84,16 +89,39 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     public void setRxJava(){
-        getLoginResponse()
+        subscription=getLoginResponse()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<LoginResponse>() {
+                    @Override
+                    public void onCompleted() {
+
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.e(TAG,""+e.toString());
+                    }
+
+                    @Override
+                    public void onNext(LoginResponse loginResponse) {
+
+                    }
+                });
     }
 
     public Observable<LoginResponse> getLoginResponse(){
         return Observable.defer(new Func0<Observable<LoginResponse>>() {
             @Override
             public Observable<LoginResponse> call() {
-                return Observable.just(sendRequest());
+                try {
+                    return Observable.just(sendRequest());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    return null;
+                }
             }
-        })
+        });
 
 
     }
@@ -105,6 +133,18 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<LoginResponse> call, Response<LoginResponse> response) {
                 Log.i(TAG, response.message());
+                if (response.isSuccessful() &&response.code()==200) {
+                    SharedPreferences pref = getApplicationContext().getSharedPreferences(getString(R.string.shared_prefs), 0); // 0 - for private mode
+                    SharedPreferences.Editor editor = pref.edit();
+                    editor.putString("token",response.body().getToken());
+                    editor.commit();
+                    Log.i(TAG, "Entró token: " +response.body().getToken());
+                    Toast.makeText(LoginActivity.this, "Se registró token", Toast.LENGTH_SHORT).show();
+                }
+                else if(response.code()!=200){
+                    Toast.makeText(LoginActivity.this, "Error al iniciar sesión", Toast.LENGTH_SHORT).show();
+                }
+                setLoginActual(response.body());
 
             }
 
@@ -115,8 +155,26 @@ public class LoginActivity extends AppCompatActivity {
             }
 
         });
-        return call.execute().body();
+        return getLoginActual();
     }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if(subscription!=null && !subscription.isUnsubscribed()){
+            subscription.unsubscribe();
+        }
+    }
+
+    public LoginResponse getLoginActual() {
+        return loginActual;
+    }
+
+    public void setLoginActual(LoginResponse loginActual) {
+        this.loginActual = loginActual;
+    }
+
+
 
     private class MyTextWatcher implements TextWatcher {
 
