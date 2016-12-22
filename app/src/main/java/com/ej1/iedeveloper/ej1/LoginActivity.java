@@ -1,6 +1,7 @@
 package com.ej1.iedeveloper.ej1;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -25,7 +26,6 @@ import com.ej1.iedeveloper.ej1.interfaces.ServicioWeb;
 import com.ej1.iedeveloper.ej1.model.LoginResponse;
 
 import java.io.IOException;
-import java.util.concurrent.Callable;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -38,12 +38,10 @@ import rx.Observable;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Func0;
 import rx.schedulers.Schedulers;
 
-public class LoginActivity extends AppCompatActivity implements View.OnFocusChangeListener
-{
-    public static String TAG="ActivityLogin";
+public class LoginActivity extends AppCompatActivity implements View.OnFocusChangeListener {
+    public static String TAG = "ActivityLogin";
     private static String URL = "http://lab.ie-soluciones.com/tapanosa/apiv2/movil/";
     private Observable<LoginResponse> observableLogin;
     private Subscription subscription;
@@ -56,8 +54,8 @@ public class LoginActivity extends AppCompatActivity implements View.OnFocusChan
     private ServicioWeb servicioWeb;
     private LoginResponse loginActual;
     private ProgressBar progressBar;
-    private boolean emailOk=false;
-    private boolean passwordOk=false;
+    private boolean emailOk = false;
+    private boolean passwordOk = false;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -73,7 +71,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnFocusChan
         buttonIniciarSesion.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.i(TAG,"onClick");
+                Log.i(TAG, "onClick");
                 progressBar.setVisibility(View.VISIBLE);
                 progressBar.setProgress(15);
                 buttonIniciarSesion.setEnabled(false);
@@ -81,7 +79,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnFocusChan
             }
         });
         setRetrofit();
-        observableLogin=getLoginResponse()
+        observableLogin = getLoginResponse()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io());
         editTextUsuario.setOnFocusChangeListener(this);
@@ -95,11 +93,11 @@ public class LoginActivity extends AppCompatActivity implements View.OnFocusChan
                     case EditorInfo.IME_ACTION_DONE:
                         View view = LoginActivity.this.getCurrentFocus();
                         if (view != null) {
-                            InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+                            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
                             imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
                         }
                         editTextContrasena.clearFocus();
-                        Log.i(TAG,"Enter");
+                        Log.i(TAG, "Enter");
                         return true;
                     default:
                         return false;
@@ -119,43 +117,46 @@ public class LoginActivity extends AppCompatActivity implements View.OnFocusChan
         servicioWeb = retrofit.create(ServicioWeb.class);
     }
 
-    public void setRxJava(){
-        subscription=observableLogin.subscribe(new Subscriber<LoginResponse>() {
-                    @Override
-                    public void onCompleted() {
-                        Log.i(TAG,"onCompleted");
-                    }
+    public void setRxJava() {
+        subscription = observableLogin.subscribe(new Subscriber<LoginResponse>() {
+            @Override
+            public void onCompleted() {
+                Log.i(TAG, "onCompleted");
+                Intent i=new Intent(LoginActivity.this,MainActivity.class);
+                startActivity(i);
+                finish();
+            }
 
-                    @Override
-                    public void onError(Throwable e) {
-                        Log.e(TAG,""+e.toString());
+            @Override
+            public void onError(Throwable e) {
+                Log.e(TAG, "" + e.toString());
 
-                    }
+            }
 
-                    @Override
-                    public void onNext(LoginResponse loginResponse) {
-                        Log.i(TAG,"onNext");
+            @Override
+            public void onNext(LoginResponse loginResponse) {
+                Log.i(TAG, "onNext");
 
-                    }
-                });
+            }
+        });
     }
 
     @Override
     public void onBackPressed() {
 
-            Log.i(TAG,"Tiene focus contraseña");
-            View view = LoginActivity.this.getCurrentFocus();
-            if (view != null) {
-                InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
-                imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
-                editTextContrasena.clearFocus();
+        Log.i(TAG, "Tiene focus contraseña");
+        View view = LoginActivity.this.getCurrentFocus();
+        if (view != null) {
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+            editTextContrasena.clearFocus();
 
-            }
+        }
 
         super.onBackPressed();
     }
 
-    public Observable<LoginResponse> getLoginResponse(){
+    public Observable<LoginResponse> getLoginResponse() {
         return Observable.create(new Observable.OnSubscribe<LoginResponse>() {
             @Override
             public void call(Subscriber<? super LoginResponse> subscriber) {
@@ -177,15 +178,14 @@ public class LoginActivity extends AppCompatActivity implements View.OnFocusChan
             @Override
             public void onResponse(Call<LoginResponse> call, Response<LoginResponse> response) {
                 Log.i(TAG, response.message());
-                if (response.isSuccessful() &&response.code()==200) {
+                if (response.isSuccessful() && response.code() == 200) {
                     SharedPreferences pref = getApplicationContext().getSharedPreferences(getString(R.string.shared_prefs), 0); // 0 - for private mode
                     SharedPreferences.Editor editor = pref.edit();
-                    editor.putString("token",response.body().getToken());
+                    editor.putString("token", response.body().getToken());
                     editor.apply();
-                    Log.i(TAG, "Entró token: " +response.body().getToken());
+                    Log.i(TAG, "Entró token: " + response.body().getToken());
                     Toast.makeText(LoginActivity.this, "Se registró token", Toast.LENGTH_SHORT).show();
-                }
-                else if(response.code()!=200){
+                } else if (response.code() != 200) {
                     Toast.makeText(LoginActivity.this, "Error al iniciar sesión", Toast.LENGTH_SHORT).show();
                 }
                 setLoginActual(response.body());
@@ -197,7 +197,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnFocusChan
             @Override
             public void onFailure(Call<LoginResponse> call, Throwable t) {
                 Toast.makeText(LoginActivity.this, "No hay conexión", Toast.LENGTH_SHORT).show();
-                Log.e(TAG, "error: "+t.toString());
+                Log.e(TAG, "error: " + t.toString());
                 progressBar.setVisibility(View.INVISIBLE);
                 progressBar.setProgress(15);
                 buttonIniciarSesion.setEnabled(true);
@@ -210,7 +210,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnFocusChan
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if(subscription!=null && !subscription.isUnsubscribed()){
+        if (subscription != null && !subscription.isUnsubscribed()) {
             subscription.unsubscribe();
         }
     }
@@ -225,29 +225,27 @@ public class LoginActivity extends AppCompatActivity implements View.OnFocusChan
 
     @Override
     public void onFocusChange(View v, boolean hasFocus) {
-        if(!hasFocus){
-            switch (v.getId()){
+        if (!hasFocus) {
+            switch (v.getId()) {
                 case R.id.editText_usuario:
-                    if(!isValidEmail(editTextUsuario.getText().toString().trim())){
+                    if (!isValidEmail(editTextUsuario.getText().toString().trim())) {
                         textInputEditTextUsuario.setErrorEnabled(true);
                         textInputEditTextUsuario.setError("E-mail incorrecto.");
-                        emailOk=false;
+                        emailOk = false;
 
-                    }
-                    else{
+                    } else {
                         textInputEditTextUsuario.setErrorEnabled(false);
-                        emailOk=true;
+                        emailOk = true;
                     }
                     break;
                 case R.id.editText_contrasena:
-                    if(editTextContrasena.getText().toString().isEmpty()){
+                    if (editTextContrasena.getText().toString().isEmpty()) {
                         textInputEditTextContrasena.setErrorEnabled(true);
                         textInputEditTextContrasena.setError("No puede ser vacío");
-                        passwordOk=false;
+                        passwordOk = false;
 
-                    }
-                    else{
-                        passwordOk=true;
+                    } else {
+                        passwordOk = true;
                         textInputEditTextContrasena.setErrorEnabled(false);
 
                     }
@@ -259,7 +257,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnFocusChan
 
     }
 
-    public final  boolean isValidEmail(String target) {
+    public final boolean isValidEmail(String target) {
         if (target == null) {
             return false;
         } else {
@@ -268,20 +266,18 @@ public class LoginActivity extends AppCompatActivity implements View.OnFocusChan
         }
     }
 
-    public void validarBoton(){
-        Log.i(TAG,"validar Boton "+emailOk+passwordOk);
-        if(emailOk && passwordOk){
+    public void validarBoton() {
+        Log.i(TAG, "validar Boton " + emailOk + passwordOk);
+        if (emailOk && passwordOk) {
             buttonIniciarSesion.setEnabled(true);
             buttonIniciarSesion.setTextColor(Color.WHITE);
             buttonIniciarSesion.setBackgroundResource(R.color.azulDesbloqueado);
-        }
-        else{
+        } else {
             buttonIniciarSesion.setEnabled(false);
-            buttonIniciarSesion.setTextColor(getResources().getColor(R.color.grisBloqueado);
+            buttonIniciarSesion.setTextColor(getResources().getColor(R.color.grisBloqueado));
             buttonIniciarSesion.setBackgroundResource(R.color.grisBloqueadoFondo);
         }
     }
-
 
 
 }
