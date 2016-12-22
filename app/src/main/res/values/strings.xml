@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">IE Soluciones</string>
+
+    <string name="shared_prefs">com.ej1.prefs</string>
+    <!-- LoginActivity-->
+    <string name="hint_editTextUsuario">Correo electrónico</string>
+    <string name="hint_editTextContrasena">Contraseña</string>
+    <string name="boton_login">Iniciar Sesión</string>
+</resources>
