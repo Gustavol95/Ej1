@@ -20,6 +20,7 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.ej1.iedeveloper.ej1.interfaces.ServicioWeb;
+import com.ej1.iedeveloper.ej1.model.ControlState;
 import com.ej1.iedeveloper.ej1.model.LoginResponse;
 
 import java.io.IOException;
@@ -56,9 +57,6 @@ public class LoginActivity extends AppCompatActivity  {
     private ServicioWeb servicioWeb;
     private LoginResponse loginActual;
     private ProgressBar progressBar;
-    private boolean emailVisited=false;
-    private boolean emailDirty=false;
-    private boolean emailCorrecto=false;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -87,8 +85,6 @@ public class LoginActivity extends AppCompatActivity  {
                 .subscribeOn(Schedulers.io());
         setRxInputValidations();
     }
-
-
 
     public void setRetrofit() {
         Retrofit retrofit = new Retrofit.Builder()
@@ -121,88 +117,6 @@ public class LoginActivity extends AppCompatActivity  {
         });
     }
 
-    public void setRxInputValidations(){
-        Observable<Boolean> observableEmail=getTextWatcherObservable(editTextUsuario)
-                .map(new Func1<String, Boolean>() {
-                    @Override
-                    public Boolean call(String s) {
-                        Log.i(TAG, "observable Email "+!isValidEmail(s)+" "+emailVisited);
-                        emailDirty=true;
-                        emailCorrecto=isValidEmail(s);
-                        if(emailVisited && !emailCorrecto){
-                            textInputEditTextUsuario.setErrorEnabled(true);
-                            textInputEditTextUsuario.setError("Email inválido");
-                        }
-                        else
-                            textInputEditTextUsuario.setErrorEnabled(false);
-                        return emailCorrecto;
-                    }
-                });
-
-        observableEmail.subscribe(new Action1<Boolean>() {
-            @Override
-            public void call(Boolean aBoolean) {
-
-            }
-        });
-
-       getOnFocusChangeObservable(editTextUsuario)
-                .subscribe(new Action1<Boolean>() {
-                    @Override
-                    public void call(Boolean hasFocus) {
-                        if(!hasFocus )
-                            emailVisited=true;
-
-                        if(emailVisited && !emailCorrecto){
-                            textInputEditTextUsuario.setErrorEnabled(true);
-                            textInputEditTextUsuario.setError("Email inválido");
-                        }
-                        else
-                            textInputEditTextUsuario.setErrorEnabled(false);
-
-                        Log.i(TAG,"hasFocus "+hasFocus);
-                        Log.i(TAG, "dirty "+emailDirty);
-                        Log.i(TAG, "EmailVisited "+emailVisited);
-                    }
-                });
-
-        Observable<Boolean> observablePassword=getTextWatcherObservable(editTextContrasena)
-                .map(new Func1<String, Boolean>() {
-                    @Override
-                    public Boolean call(String s) {
-                        return !s.trim().isEmpty();
-                    }
-                });
-         subBoton=Observable.combineLatest(observableEmail, observablePassword, new Func2<Boolean, Boolean, Boolean>() {
-            @Override
-            public Boolean call(Boolean emailValido, Boolean passwordValido) {
-                Log.i(TAG,"email : "+emailValido);
-                Log.i(TAG,"pass : "+passwordValido);
-                //Mostrar u ocultar errores en el input
-                if(!emailValido){
-                    textInputEditTextUsuario.setErrorEnabled(true);
-                    textInputEditTextUsuario.setError("Email inválido");
-                }
-                else
-                    textInputEditTextUsuario.setErrorEnabled(false);
-
-
-                return emailValido && passwordValido;
-            }
-        })
-                .subscribe(new Action1<Boolean>() {
-                    @Override
-                    public void call(Boolean todoValido) {
-                        if(todoValido)
-                            activarBoton();
-                        else
-                            desactivarBoton();
-                    }
-                });
-
-
-    }
-
     public Observable<String> getTextWatcherObservable(@NonNull final AppCompatEditText editText) {
 
         final PublishSubject<String> subject = PublishSubject.create();
@@ -222,14 +136,34 @@ public class LoginActivity extends AppCompatActivity  {
         return subject;
     }
 
-    public Observable<Boolean> getOnFocusChangeObservable(final View view){
-        final PublishSubject<Boolean> subject = PublishSubject.create();
-        view.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+    public Observable<ControlState> getEmailObservable(@NonNull final AppCompatEditText editText) {
+
+        final PublishSubject<ControlState> subject = PublishSubject.create();
+        final ControlState control = new ControlState();
+
+        editText.addTextChangedListener(new TextWatcher() {
             @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                subject.onNext(hasFocus);
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                control.setDirty(true);
+                control.setValid(isValidEmail(s.toString()));
+                subject.onNext(control);
             }
         });
+
+        editText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if(!hasFocus )
+                    control.setVisited(true);
+                    subject.onNext(control);
+            }
+        });
+
         return subject;
     }
 
@@ -296,6 +230,9 @@ public class LoginActivity extends AppCompatActivity  {
         if (subscription != null && !subscription.isUnsubscribed()) {
             subscription.unsubscribe();
         }
+        if (subBoton != null && !subBoton.isUnsubscribed()) {
+            subBoton.unsubscribe();
+        }
     }
 
     public LoginResponse getLoginActual() {
@@ -315,7 +252,6 @@ public class LoginActivity extends AppCompatActivity  {
         }
     }
 
-
     public void activarBoton(){
         buttonIniciarSesion.setEnabled(true);
         buttonIniciarSesion.setTextColor(Color.WHITE);
@@ -326,6 +262,54 @@ public class LoginActivity extends AppCompatActivity  {
         buttonIniciarSesion.setEnabled(false);
         buttonIniciarSesion.setTextColor(getResources().getColor(R.color.grisBloqueado));
         buttonIniciarSesion.setBackgroundResource(R.color.grisBloqueadoFondo);
+    }
+
+    public void setRxInputValidations(){
+        Observable<ControlState> observableEmail=getEmailObservable(editTextUsuario)
+                .map(new Func1<ControlState, ControlState>() {
+                    @Override
+                    public ControlState call(ControlState controlState) {
+                        if(controlState.isVisited() && !controlState.isValid()){
+                            textInputEditTextUsuario.setErrorEnabled(true);
+                            textInputEditTextUsuario.setError("Email inválido");
+                        }
+                        else
+                            textInputEditTextUsuario.setErrorEnabled(false);
+
+                        Log.i(TAG,"visited (!hasFocus) "+controlState.isVisited());
+                        Log.i(TAG, "dirty (textChanged) "+controlState.isDirty());
+                        Log.i(TAG, "valid  (isEmailValid)"+controlState.isValid());
+                        return controlState;
+                    }
+                });
+
+        Observable<Boolean> observablePassword=getTextWatcherObservable(editTextContrasena)
+                .map(new Func1<String, Boolean>() {
+                    @Override
+                    public Boolean call(String s) {
+                        return !s.trim().isEmpty();
+                    }
+                });
+        subBoton=Observable.combineLatest(observableEmail, observablePassword, new Func2<ControlState, Boolean, Boolean>() {
+            @Override
+            public Boolean call(ControlState controlState, Boolean validPassword) {
+                 if(controlState.isDirty() && controlState.isVisited() && !controlState.isValid()){
+                     textInputEditTextUsuario.setErrorEnabled(true);
+                     textInputEditTextUsuario.setError("Email inválido");
+                 }else
+                     textInputEditTextUsuario.setErrorEnabled(false);
+                return controlState.isDirty() && controlState.isVisited() && controlState.isValid() && validPassword;
+            }
+        }).subscribe(new Action1<Boolean>() {
+            @Override
+            public void call(Boolean ambosValidos) {
+                if(ambosValidos)
+                    activarBoton();
+                else
+                    desactivarBoton();
+            }
+        });
+
     }
 
 }
