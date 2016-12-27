@@ -1,5 +1,5 @@
 apply plugin: 'com.android.application'
-apply plugin: 'org.greenrobot.greendao'
+apply plugin: 'realm-android'
 
 android {
     compileSdkVersion 25
@@ -33,6 +33,5 @@ dependencies {
     compile 'io.reactivex:rxandroid:1.2.1'
     compile 'io.reactivex:rxjava:1.1.6'
     compile 'com.squareup.retrofit2:converter-gson:2.1.0'
-    compile 'org.greenrobot:greendao:3.2.0'
     testCompile 'junit:junit:4.12'
 }
