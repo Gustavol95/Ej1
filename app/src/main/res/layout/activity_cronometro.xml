@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <RelativeLayout
+            android:id="@+id/realativeCronometro"
+            android:layout_width="match_parent"
+            android:layout_height="200dp">
+
+        </RelativeLayout>
+
+        <ExpandableListView
+            android:id="@+id/recycler"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+        </ExpandableListView>
+
+
+    </LinearLayout>
+    <android.support.design.widget.FloatingActionButton
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        app:layout_anchor="@id/recycler"
+        app:layout_anchorGravity="top|right"
+        />
+
+</android.support.design.widget.CoordinatorLayout>

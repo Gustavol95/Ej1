@@ -1,0 +1,48 @@
+package com.ej1.iedeveloper.ej1.model;
+
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.TextView;
+
+import com.amulyakhare.textdrawable.TextDrawable;
+import com.bignerdranch.expandablerecyclerview.ViewHolder.ParentViewHolder;
+import com.ej1.iedeveloper.ej1.R;
+
+import butterknife.BindView;
+import butterknife.ButterKnife;
+
+/**
+ * Created by iedeveloper on 28/12/16.
+ */
+
+public class PadreViewHolder extends ParentViewHolder {
+    /**
+     * Default constructor.
+     *
+     * @param itemView The {@link View} being hosted in this ViewHolder
+     */
+
+    @BindView(R.id.imagenLetra) private ImageView letra;
+    @BindView(R.id.texto) private TextView texto;
+
+    public PadreViewHolder(View itemView) {
+        super(itemView);
+        ButterKnife.bind(itemView);
+    }
+
+    public void bind(Padre padre){
+        TextDrawable drawable = TextDrawable.builder()
+                .beginConfig()
+                .textColor(Color.BLACK)
+                .useFont(Typeface.DEFAULT)
+                .fontSize(30) /* size in px */
+                .bold()
+                .toUpperCase()
+                .endConfig()
+                .buildRect(padre.getIcono(), Color.RED);
+        letra.setImageDrawable(drawable);
+        texto.setText(padre.getTexto());
+    }
+}
