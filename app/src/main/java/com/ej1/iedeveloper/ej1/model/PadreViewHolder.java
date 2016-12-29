@@ -24,12 +24,14 @@ public class PadreViewHolder extends ParentViewHolder {
      * @param itemView The {@link View} being hosted in this ViewHolder
      */
 
-    @BindView(R.id.imagenLetra) private ImageView letra;
-    @BindView(R.id.texto) private TextView texto;
+      ImageView letra;
+     TextView texto;
 
     public PadreViewHolder(View itemView) {
         super(itemView);
-        ButterKnife.bind(itemView);
+        letra =(ImageView)itemView.findViewById(R.id.imagenLetra);
+        texto=(TextView)itemView.findViewById(R.id.textoPadre);
+
     }
 
     public void bind(Padre padre){

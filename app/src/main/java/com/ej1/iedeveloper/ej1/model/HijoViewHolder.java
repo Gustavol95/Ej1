@@ -21,11 +21,11 @@ public class HijoViewHolder extends ChildViewHolder {
      * @param itemView The {@link View} being hosted in this ViewHolder
      */
 
-    @BindViews(R.id.texto) private TextView controles;
+    TextView controles;
 
     public HijoViewHolder(View itemView) {
         super(itemView);
-        ButterKnife.bind(itemView);
+        controles=(TextView)itemView.findViewById(R.id.textoHijo);
     }
 
     public void bind(Hijo hijo){
