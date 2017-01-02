@@ -44,7 +44,7 @@ import rx.subjects.PublishSubject;
 
 public class LoginActivity extends AppCompatActivity  {
     public static String TAG = "ActivityLogin";
-    private static String URL = "http://lab.ie-soluciones.com/tapanosa/apiv2/movil/";
+    public static String URL = "http://lab.ie-soluciones.com/tapanosa/apiv2/";
     private Observable<LoginResponse> observableLogin;
     private Subscription subscription;
     private Subscription subBoton;

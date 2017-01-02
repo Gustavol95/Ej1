@@ -3,12 +3,32 @@ package com.ej1.iedeveloper.ej1;
 import android.content.SharedPreferences;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.AppCompatButton;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.view.View;
 import android.widget.TextView;
+
+import com.ej1.iedeveloper.ej1.greendao.Cliente;
+import com.ej1.iedeveloper.ej1.greendao.ClienteDao;
+import com.ej1.iedeveloper.ej1.greendao.DaoSession;
+import com.ej1.iedeveloper.ej1.interfaces.ServicioWeb;
+import com.ej1.iedeveloper.ej1.model.ClientsResponse;
+
+import org.greenrobot.greendao.query.Query;
+
+import java.io.IOException;
+import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import okhttp3.Request;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
+import retrofit2.converter.gson.GsonConverterFactory;
 /*
 * LIBRERIAS USADAS.
 * - Retrofit 2.0 (Peticiones HTTP)  https://square.github.io/retrofit/
@@ -24,17 +44,78 @@ import butterknife.ButterKnife;
 
 public class MainActivity extends AppCompatActivity {
 
-    public static String TAG="AcivityMain";
+    public static String TAG="ActivityMain";
     @BindView(R.id.text) TextView text;
-    @BindView(R.id.recycler) RecyclerView recyclerView;
+    @BindView(R.id.botonRetrieveClients) AppCompatButton botonRetrieveClients;
+    SharedPreferences pref;
+    private ServicioWeb servicioWeb;
+    private ClienteDao clienteDao;
+    private Query<Cliente> notesQuery;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
-        SharedPreferences pref = getApplicationContext().getSharedPreferences(getString(R.string.shared_prefs), 0); // 0 - for private mode
+        pref = getApplicationContext().getSharedPreferences(getString(R.string.shared_prefs), 0); // 0 - for private mode
         text.setText(pref.getString("token","No se guardó el token"));
         Log.d(TAG,pref.getString("token","No se guardó el token"));
+        setRetrofit();
+        botonRetrieveClients.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                retrieveClientsRequest();
+            }
+        });
+        // get the note DAO
+        DaoSession daoSession = ((App) getApplication()).getDaoSession();
+        clienteDao=daoSession.getClienteDao();
+
+    }
+
+    public void setRetrofit() {
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(LoginActivity.URL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
+                .build();
+        servicioWeb = retrofit.create(ServicioWeb.class);
+    }
+
+    public void retrieveClientsRequest(){
+        Log.d(TAG,LoginActivity.URL+"Bearer "+pref.getString("token","No se guardó el token"));
+        Call<List<ClientsResponse>> call=servicioWeb.getClients("Bearer "+pref.getString("token","No se guardó el token"));
+        call.enqueue(new Callback<List<ClientsResponse>>() {
+            @Override
+            public void onResponse(Call<List<ClientsResponse>> call, Response<List<ClientsResponse>> response) {
+                Log.d(TAG, "onResponse - Status : " + response.code());
+                Log.d(TAG,response.body().toString()+" ");
+                insertOrUpdateToDb(response.body());
+            }
+
+            @Override
+            public void onFailure(Call<List<ClientsResponse>> call, Throwable t) {
+                Log.d(TAG,t.getMessage());
+            }
+        });
+    }
+    public void insertOrUpdateToDb(List<ClientsResponse> response){
+        for(ClientsResponse cliente:response){
+            Cliente temp=new Cliente();
+            temp.setId(cliente.getId());
+            temp.setNombre(cliente.getNombre());
+            temp.setObservaciones(cliente.getObservaciones());
+            temp.setFechaAlta(cliente.getFechaAlta());
+            temp.setIdZona(cliente.getIdZona());
+            temp.setIdRuta(cliente.getIdRuta());
+            temp.setCreatedAt(cliente.getCreatedAt());
+            temp.setUpdatedAt(cliente.getUpdatedAt());
+            temp.setDeletedAt(cliente.getDeletedAt());
+            temp.setProratearAbono(cliente.getProratearAbono());
+            temp.setDescZona(cliente.getDescZona());
+            temp.setDescRuta(cliente.getDescRuta());
+            clienteDao.insertOrReplace(temp);
+        }
+
 
     }
 
